@@ -99,7 +99,7 @@ async def update_staff_status():
 async def before_update_staff_status():
     await bot.wait_until_ready()
     
-@tasks.loop(seconde=1)
+@tasks.loop(seconds=20)
 async def check_status():
     for guild in bot.guilds:
         role = disnake.utils.get(guild.roles, name='🦾〢Soutient Bio')
