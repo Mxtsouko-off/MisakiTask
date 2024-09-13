@@ -18,6 +18,10 @@ role_name = "📂〢Staff"
 QUESTION_CHANNEL = "❔〃question-du-jour"
 GUILD_NAME = "La Taverne 🍻"
 
+accept_count = 0
+pass_count = 0
+
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}.")
@@ -178,7 +182,12 @@ def get_anime_image(anime_name):
 
 @tasks.loop(hours=4)
 async def anime_vote_task():
-    global global_anime_name, global_anime_link, accept_count, pass_count
+    global accept_count, pass_count, global_anime_name, global_anime_link
+    
+    if 'accept_count' not in globals():
+        accept_count = 0
+    if 'pass_count' not in globals():
+        pass_count = 0
 
     guild = disnake.utils.get(bot.guilds, name="La Taverne 🍻")
     channel = disnake.utils.get(guild.text_channels, name="💐〃anime-vote")
