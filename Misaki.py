@@ -12,7 +12,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='.', intents=intents, help_command=None)
 
-
 staff_status_message = None
 channel_id = 1283104286271864913
 role_name = "📂〢Staff"
@@ -35,16 +34,16 @@ async def on_ready():
     update_staff_status.start()
     check_status.start()
     load_animes()
+    
     if not anime_vote_task.is_running():
         anime_vote_task.start()
-    
-    
+
 @tasks.loop(hours=2)
 async def remind_bumping():
     for guild in bot.guilds:
         channel = disnake.utils.get(guild.text_channels, name='🌊〃bump')
         role = disnake.utils.get(guild.roles, name='🌊〢Ping Bumping')
-        if channel is not None and role is not None:
+        if channel and role:
             embed = disnake.Embed(
                 title="Rappel de Bump",
                 description="Il est temps de bump le serveur !",
@@ -56,54 +55,51 @@ async def remind_bumping():
 async def update_staff_status():
     global staff_status_message  
     channel = bot.get_channel(channel_id)
-    if channel is None:
+    if not channel:
         return
 
     guild = channel.guild
     role = disnake.utils.get(guild.roles, name=role_name)
-    if role is None:
+    if not role:
         return
 
-    online_members = []
-    idle_members = []
-    dnd_members = []
-    offline_members = []
+    statuses = {"online": [], "idle": [], "dnd": [], "offline": []}
 
     for member in guild.members:
         if role in member.roles:
             if member.status == disnake.Status.online:
-                online_members.append(member.mention)
+                statuses["online"].append(member.mention)
             elif member.status == disnake.Status.idle:
-                idle_members.append(member.mention)
+                statuses["idle"].append(member.mention)
             elif member.status == disnake.Status.dnd:
-                dnd_members.append(member.mention)
+                statuses["dnd"].append(member.mention)
             else:
-                offline_members.append(member.mention)
+                statuses["offline"].append(member.mention)
 
     embed = disnake.Embed(
         title="Statut du Staff",
         color=0x00ff00,
         description="Voici les statuts actuels des membres du staff."
     )
-    embed.add_field(name="`🟢` **En ligne**", value='\n'.join(online_members) or "Aucun", inline=False)
-    embed.add_field(name="`🌙` **Inactif**", value='\n'.join(idle_members) or "Aucun", inline=False)
-    embed.add_field(name="`⛔` **Ne pas déranger**", value='\n'.join(dnd_members) or "Aucun", inline=False)
-    embed.add_field(name="`⚫` **Hors ligne**", value='\n'.join(offline_members) or "Aucun", inline=False)
+    embed.add_field(name="`🟢` **En ligne**", value='\n'.join(statuses["online"]) or "Aucun", inline=False)
+    embed.add_field(name="`🌙` **Inactif**", value='\n'.join(statuses["idle"]) or "Aucun", inline=False)
+    embed.add_field(name="`⛔` **Ne pas déranger**", value='\n'.join(statuses["dnd"]) or "Aucun", inline=False)
+    embed.add_field(name="`⚫` **Hors ligne**", value='\n'.join(statuses["offline"]) or "Aucun", inline=False)
 
     if staff_status_message is None:
         staff_status_message = await channel.send(embed=embed)
     else:
         await staff_status_message.edit(embed=embed)
-        
+
 @update_staff_status.before_loop
 async def before_update_staff_status():
     await bot.wait_until_ready()
-    
+
 @tasks.loop(seconds=20)
 async def check_status():
     for guild in bot.guilds:
         role = disnake.utils.get(guild.roles, name='🦾〢Soutient Bio')
-        if role is None:
+        if not role:
             print(f"Rôle '🦾〢Soutient Bio' non trouvé dans {guild.name}.")
             continue
 
@@ -116,14 +112,12 @@ async def check_status():
                 for activity in member.activities
             )
 
-            if has_custom_status:
-                if role not in member.roles:
-                    await member.add_roles(role)
-                    print(f'Rôle ajouté à {member.display_name} dans {guild.name}')
-            else:
-                if role in member.roles:
-                    await member.remove_roles(role)
-                    print(f'Rôle retiré de {member.display_name} dans {guild.name}')
+            if has_custom_status and role not in member.roles:
+                await member.add_roles(role)
+                print(f'Rôle ajouté à {member.display_name} dans {guild.name}')
+            elif not has_custom_status and role in member.roles:
+                await member.remove_roles(role)
+                print(f'Rôle retiré de {member.display_name} dans {guild.name}')
 
 def load_questions():
     global questions
@@ -133,7 +127,6 @@ def load_questions():
             data = response.json()
             questions = [item['question'] for item in data]
             print(f"{len(questions)} questions chargées.")
-            print("Questions are loaded.")
         else:
             print(f"Erreur lors du chargement des questions: {response.status_code}")
     except Exception as e:
@@ -160,9 +153,8 @@ async def send_random_question():
                 description=question,
                 color=0x00ff00
             )
-            embed.add_field(name='Hésitez pas à répondre dans :', value='https://discord.com/channels/1251476405112537148/1269373203650973726')
+            embed.add_field(name='Répondez dans :', value='https://discord.com/channels/1251476405112537148/1269373203650973726')
             await channel.send(content=role.mention, embed=embed)
-
 
 def load_animes():
     global anime_list
@@ -190,7 +182,7 @@ async def anime_vote_task():
 
     guild = disnake.utils.get(bot.guilds, name="La Taverne 🍻")
     channel = disnake.utils.get(guild.text_channels, name="💐〃anime-vote")
-    if channel is None:
+    if not channel:
         print("Canal non trouvé.")
         return
 
@@ -264,6 +256,5 @@ def keep_alive():
     server.start()
 
 keep_alive()
-
 
 bot.run(os.getenv('TOKEN'))
