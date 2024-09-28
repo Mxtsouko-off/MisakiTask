@@ -26,7 +26,7 @@ pass_count = 0
 async def on_ready():
     print(f"Logged in as {bot.user}.")
     await bot.change_presence(
-        status=disnake.Status.online,
+        status=disnake.Status.do_not_disturb,
         activity=disnake.Activity(
             type=disnake.ActivityType.streaming,
             name=".gg/lataverne & created by Mxtsouko",
@@ -51,7 +51,7 @@ async def remind_bumping():
             embed = disnake.Embed(
                 title="Rappel de Bump",
                 description="Il est temps de bump le serveur !",
-                color=0xFF5733
+                color=0x346beb
             )
             await channel.send(content=role.mention, embed=embed)
 
@@ -85,10 +85,10 @@ async def update_staff_status():
         color=0x00ff00,
         description="Voici les statuts actuels des membres du staff."
     )
-    embed.add_field(name="`🟢` **En ligne**", value='\n'.join(statuses["online"]) or "Aucun", inline=False)
-    embed.add_field(name="`🌙` **Inactif**", value='\n'.join(statuses["idle"]) or "Aucun", inline=False)
-    embed.add_field(name="`⛔` **Ne pas déranger**", value='\n'.join(statuses["dnd"]) or "Aucun", inline=False)
-    embed.add_field(name="`⚫` **Hors ligne**", value='\n'.join(statuses["offline"]) or "Aucun", inline=False)
+    embed.add_field(name="`🟢` **Online**", value='\n'.join(statuses["online"]) or "Aucun", inline=False)
+    embed.add_field(name="`🌙` **Idle**", value='\n'.join(statuses["idle"]) or "Aucun", inline=False)
+    embed.add_field(name="`⛔` **Do not disturb**", value='\n'.join(statuses["dnd"]) or "Aucun", inline=False)
+    embed.add_field(name="`⚫` **Offline**", value='\n'.join(statuses["offline"]) or "Aucun", inline=False)
 
     if staff_status_message is None:
         staff_status_message = await channel.send(embed=embed)
@@ -112,7 +112,7 @@ async def check_status():
                 continue
 
             has_custom_status = any(
-                activity.type == disnake.ActivityType.custom and activity.state and '/Taverne' in activity.state
+                activity.type == disnake.ActivityType.custom and activity.state and '/lataverne' in activity.state
                 for activity in member.activities
             )
 
@@ -137,6 +137,29 @@ def load_questions():
         print(f"Une erreur s'est produite lors du chargement des questions: {e}")
 
 load_questions()
+
+@bot.event
+async def on_member_join(member: disnake.Member):
+    guild = member.guild
+    channel = disnake.utils.get(guild.text_channels, name='💬〃chat')
+    role = disnake.utils.get(guild.roles, name="🎇〢New Member")
+
+    if channel and role:
+        em = disnake.Embed(
+            title=f'Bienvenue {member.mention} <a:aw_str:1282653955498967051>, dans {guild.name} <a:3895blueclouds:1255574701909086282>',
+            description=f'Nous sommes désormais {guild.member_count} membres, je te laisse les instructions. Si tu as besoin d\'aide, n\'hésite pas à ping un membre du staff.',
+            color=0xf53527
+        )
+        em.add_field(name='Tu peux retrouver notre règlement ici', value='https://discord.com/channels/1251476405112537148/1268883764361035847', inline=False)
+        em.add_field(name="N'oublie pas de prendre tes rôles", value="Tout en haut dans l'onglet salon et rôles.", inline=False)
+        em.add_field(name="Si tu souhaites être recruté, voici notre salon de recrutement", value="https://discord.com/channels/1251476405112537148/1268926752734969949", inline=False)
+        em.set_image(url='https://media.discordapp.net/attachments/1280352059031425035/1282095507841351692/1af689d42bdb7686df444f22925f9e89.gif?ex=66f922bd&is=66f7d13d&hm=a719ae8abf4229f06d39b75e9bf4b59eb79c3e9da6cd23123d73e428a7254cdd&=&width=1193&height=671')
+
+        await channel.send('https://media.discordapp.net/attachments/1038084584149102653/1283304082286579784/2478276E-41CA-4738-B961-66A84B918163-1-1-1-1-1.gif?ex=66f993cf&is=66f8424f&hm=f14094491366b83448d82b6c4fc17128561f4c54465a5ba9fa2fffe1fb83dda3&=')
+        await channel.send(embed=em, content=role.mention)
+    else:
+        print("Erreur: Le salon '💬〃chat' ou le rôle '🎇〢New Member' est introuvable.")
+
 
 @tasks.loop(hours=5)
 async def send_random_question():
@@ -219,16 +242,25 @@ async def anime_vote_task():
     image_url = get_anime_image(global_anime_name)
 
     role = disnake.utils.get(channel.guild.roles, name='🚀〢Ping Anime vote')
+    
+    if channel and role:
+        try:
+            await channel.purge(limit=100) 
+        except Exception as e:
+            print(f"Erreur lors de la purge des messages: {e}")
+            
     if image_url:
         embed = disnake.Embed(
-            title="Vote pour l'anime",
-            description=f"Proposition d'anime : {global_anime_name}\n{global_anime_link}"
+            title="Anime Votes",
+            description=f"Anime : {global_anime_name}",
+            color=disnake.Color.dark_red()
         )
+        embed.add_field(name='Lien Crunchyroll:', value=f'[Clique Ici]({global_anime_link})')
         embed.set_image(url=image_url)
 
         view = disnake.ui.View()
-        view.add_item(disnake.ui.Button(label="Accepter", style=disnake.ButtonStyle.success, custom_id="accept"))
-        view.add_item(disnake.ui.Button(label="Passer", style=disnake.ButtonStyle.danger, custom_id="pass"))
+        view.add_item(disnake.ui.Button(label="Accepté", style=disnake.ButtonStyle.gray, custom_id="accept"))
+        view.add_item(disnake.ui.Button(label="Décliné", style=disnake.ButtonStyle.danger, custom_id="pass"))
 
         await channel.send(content=role.mention, embed=embed, view=view)
     else:
