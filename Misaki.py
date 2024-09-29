@@ -82,13 +82,13 @@ async def update_staff_status():
 
     embed = disnake.Embed(
         title="Statut du Staff",
-        color=0x00ff00,
+        color=0x7065c9,
         description="Voici les statuts actuels des membres du staff."
     )
-    embed.add_field(name="`🟢` **Online**", value='\n'.join(statuses["online"]) or "Aucun", inline=False)
-    embed.add_field(name="`🌙` **Idle**", value='\n'.join(statuses["idle"]) or "Aucun", inline=False)
-    embed.add_field(name="`⛔` **Do not disturb**", value='\n'.join(statuses["dnd"]) or "Aucun", inline=False)
-    embed.add_field(name="`⚫` **Offline**", value='\n'.join(statuses["offline"]) or "Aucun", inline=False)
+    embed.add_field(name="`🟢` **Online**", value='\n'.join(statuses["online"]) or "No", inline=False)
+    embed.add_field(name="`🌙` **Idle**", value='\n'.join(statuses["idle"]) or "No", inline=False)
+    embed.add_field(name="`⛔` **Do not disturb**", value='\n'.join(statuses["dnd"]) or "No", inline=False)
+    embed.add_field(name="`⚫` **Offline**", value='\n'.join(statuses["offline"]) or "No", inline=False)
 
     if staff_status_message is None:
         staff_status_message = await channel.send(embed=embed)
@@ -146,7 +146,7 @@ async def on_member_join(member: disnake.Member):
 
     if channel and role:
         em = disnake.Embed(
-            title=f'Bienvenue {member.mention} <a:aw_str:1282653955498967051>, dans {guild.name} <a:3895blueclouds:1255574701909086282>',
+            title=f'Bienvenue {member.name} <a:aw_str:1282653955498967051>, dans {guild.name} <a:3895blueclouds:1255574701909086282>',
             description=f'Nous sommes désormais {guild.member_count} membres, je te laisse les instructions. Si tu as besoin d\'aide, n\'hésite pas à ping un membre du staff.',
             color=0xf53527
         )
