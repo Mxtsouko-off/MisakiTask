@@ -199,6 +199,7 @@ async def auto_drop_task():
         async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
             member = interaction.author
             await interaction.response.defer(ephemeral=True)
+
             message_count = await self.get_total_message_count(member, interaction.guild)
             in_voice_channel = await self.is_in_voice_channel(member)
 
@@ -216,13 +217,18 @@ async def auto_drop_task():
 
         async def get_total_message_count(self, member, guild):
             total_messages = 0
-            for channel in guild.text_channels:
+            channels_to_check = guild.text_channels[:5]  # Vérifie seulement dans les 5 premiers salons
+
+            for channel in channels_to_check:
                 try:
                     async for message in channel.history(limit=100):
                         if message.author == member:
                             total_messages += 1
                 except disnake.Forbidden:
                     pass
+                except Exception as e:
+                    print(f"Erreur lors de l'accès à l'historique des messages dans le salon {channel.name}: {e}")
+
             return total_messages
 
         async def is_in_voice_channel(self, member):
@@ -242,6 +248,7 @@ async def auto_drop_task():
             await channel.send(f"Bravo {winner.mention} ! Tu as remporté le rôle **{role_to_give.name}** 🎉")
     else:
         await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
+
 
 @tasks.loop(hours=5)
 async def send_random_question():
