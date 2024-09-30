@@ -168,7 +168,7 @@ role_names = ["🎩〢Ėmissaire", "🎗️〢Duc", "🪭〢Comte", "🪖〢Vass
               "🔫〢Sergent d’Armes", "🔪〢Bourreau", "🏆〢Empereur", "🧢〢Certifier Vip", 
               "🕊️〢Gardien", "🐸〢Superieur"]
 
-@tasks.loop(minutes=5)
+@tasks.loop(hours=1)
 async def auto_drop_task():
 
     guild = disnake.utils.get(bot.guilds, name=GUILD_NAME)
@@ -218,7 +218,7 @@ async def auto_drop_task():
 
     view = DropButton()
 
-    await channel.send(content=role_ping.mention, embed=em, view=view)
+    await channel.send(embed=em, view=view)
     await asyncio.sleep(120)
 
     if view.participants:
