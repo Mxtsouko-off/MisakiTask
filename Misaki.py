@@ -170,8 +170,6 @@ role_names = ["🎩〢Ėmissaire", "🎗️〢Duc", "🪭〢Comte", "🪖〢Vass
 
 @tasks.loop(minutes=5)
 async def auto_drop_task():
-    interval = random.randint(5, 10)
-    await asyncio.sleep(interval * 60)
 
     guild = disnake.utils.get(bot.guilds, name=GUILD_NAME)
     channel = disnake.utils.get(guild.text_channels, name='🎇〃2m-auto-drop')
@@ -185,7 +183,7 @@ async def auto_drop_task():
     em = disnake.Embed(
         title='2 Minute Drop!',
         description=f"Réagis pour participer et avoir une chance de gagner le rôle **{selected_role}**.\n"
-                    f"Condition : Avoir entre 5 et 10 messages récents sur le serveur **ou** être en vocal.",
+                    f"Condition : Être en vocal.",
         color=disnake.Color.dark_red()
     )
     em.set_footer(text="Le drop se termine dans 2 minutes. Cliquez sur le bouton ci-dessous pour participer.")
@@ -200,10 +198,7 @@ async def auto_drop_task():
             member = interaction.author
             await interaction.response.defer(ephemeral=True)
 
-            message_count = await self.get_total_message_count(member, interaction.guild)
-            in_voice_channel = await self.is_in_voice_channel(member)
-
-            if (5 <= message_count <= 10) or in_voice_channel:
+            if member.voice and member.voice.channel:
                 if member.id not in self.participants:
                     self.participants.append(member.id)
                     await interaction.edit_original_response(content=f"{member.mention}, tu es maintenant inscrit au drop !")
@@ -211,28 +206,9 @@ async def auto_drop_task():
                     await interaction.edit_original_response(content=f"{member.mention}, tu es déjà inscrit.")
             else:
                 await interaction.edit_original_response(
-                    content=f"{member.mention}, tu n'as pas rempli les conditions (5-10 messages ou être en vocal). "
-                            f"Tu as actuellement {message_count} messages sur ce serveur."
+                    content=f"{member.mention}, tu n'es pas en vocal. "
+                            f"Tu dois être dans un canal vocal pour participer."
                 )
-
-        async def get_total_message_count(self, member, guild):
-            total_messages = 0
-            channels_to_check = guild.text_channels[:5]  # Vérifie seulement dans les 5 premiers salons
-
-            for channel in channels_to_check:
-                try:
-                    async for message in channel.history(limit=100):
-                        if message.author == member:
-                            total_messages += 1
-                except disnake.Forbidden:
-                    pass
-                except Exception as e:
-                    print(f"Erreur lors de l'accès à l'historique des messages dans le salon {channel.name}: {e}")
-
-            return total_messages
-
-        async def is_in_voice_channel(self, member):
-            return bool(member.voice and member.voice.channel)
 
     view = DropButton()
 
@@ -248,7 +224,6 @@ async def auto_drop_task():
             await channel.send(f"Bravo {winner.mention} ! Tu as remporté le rôle **{role_to_give.name}** 🎉")
     else:
         await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
-
 
 @tasks.loop(hours=5)
 async def send_random_question():
