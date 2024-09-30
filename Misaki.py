@@ -39,7 +39,8 @@ async def on_ready():
     remind_bumping.start()
     update_staff_status.start()
     check_status.start()
-    auto_drop_task.start()
+    if not auto_drop_task.is_running():
+        auto_drop_task.start()
     load_animes()
     
     if not anime_vote_task.is_running():
@@ -171,7 +172,7 @@ role_names = ["🎩〢Ėmissaire", "🎗️〢Duc", "🪭〢Comte", "🪖〢Vass
 async def auto_drop_task():
     interval = random.randint(5, 10)
     await asyncio.sleep(interval * 60)
-    
+
     guild = disnake.utils.get(bot.guilds, name=GUILD_NAME)
     channel = disnake.utils.get(guild.text_channels, name='🎇〃2m-auto-drop')
     role_ping = disnake.utils.get(guild.roles, name='📣〢Ping Giveaways')
@@ -241,7 +242,6 @@ async def auto_drop_task():
             await channel.send(f"Bravo {winner.mention} ! Tu as remporté le rôle **{role_to_give.name}** 🎉")
     else:
         await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
-
 
 @tasks.loop(hours=5)
 async def send_random_question():
