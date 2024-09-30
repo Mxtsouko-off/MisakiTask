@@ -185,7 +185,7 @@ async def auto_drop_task():
     em = disnake.Embed(
         title='2 Minute Drop!',
         description=f"Réagis pour participer et avoir une chance de gagner le rôle **{selected_role}**.\n"
-                    f"Condition : Avoir entre 5 et 10 messages récents dans ce salon **ou** être en vocal.",
+                    f"Condition : Avoir entre 5 et 10 messages récents sur le serveur **ou** être en vocal.",
         color=disnake.Color.dark_red()
     )
     em.set_footer(text="Le drop se termine dans 2 minutes. Cliquez sur le bouton ci-dessous pour participer.")
@@ -200,8 +200,8 @@ async def auto_drop_task():
         async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
             member = interaction.author
 
-            # Vérifier si le membre a entre 5 et 10 messages OU est en vocal
-            message_count = await self.get_message_count(member, interaction.channel)  # Comptage des messages dans le canal
+            # Vérifier si le membre a entre 5 et 10 messages dans tout le serveur OU est en vocal
+            message_count = await self.get_total_message_count(member, interaction.guild)  # Comptage des messages dans tout le serveur
             in_voice_channel = await self.is_in_voice_channel(member)
 
             if (5 <= message_count <= 10) or in_voice_channel:
@@ -213,15 +213,20 @@ async def auto_drop_task():
             else:
                 await interaction.response.send_message(
                     f"{member.mention}, tu n'as pas rempli les conditions (5-10 messages ou être en vocal). "
-                    f"Tu as actuellement {message_count} messages dans ce salon.", ephemeral=True)
+                    f"Tu as actuellement {message_count} messages sur ce serveur.", ephemeral=True)
 
-        async def get_message_count(self, member, channel):
-            # Fonction pour compter les messages récents de l'utilisateur dans le channel
-            count = 0
-            async for message in channel.history(limit=100):  # Limite à 100 messages récents
-                if message.author == member:
-                    count += 1
-            return count
+        async def get_total_message_count(self, member, guild):
+            # Fonction pour compter les messages récents de l'utilisateur dans tout le serveur
+            total_messages = 0
+            for channel in guild.text_channels:
+                try:
+                    async for message in channel.history(limit=100):  # Limite à 100 messages par salon
+                        if message.author == member:
+                            total_messages += 1
+                except disnake.Forbidden:
+                    # Si le bot n'a pas les permissions d'accéder à un canal, il continue
+                    pass
+            return total_messages
 
         async def is_in_voice_channel(self, member):
             # Fonction pour vérifier si l'utilisateur est dans un canal vocal
