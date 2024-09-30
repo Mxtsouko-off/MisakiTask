@@ -185,45 +185,59 @@ async def auto_drop_task():
     em = disnake.Embed(
         title='2 Minute Drop!',
         description=f"Réagis pour participer et avoir une chance de gagner le rôle **{selected_role}**.\n"
-                    f"Condition : Avoir entre 5 et 20 messages récents.",
+                    f"Condition : Avoir entre 5 et 10 messages récents dans ce salon **ou** être en vocal.",
         color=disnake.Color.dark_red()
     )
     em.set_footer(text="Le drop se termine dans 2 minutes. Cliquez sur le bouton ci-dessous pour participer.")
 
     # Classe pour le bouton de participation
     class DropButton(disnake.ui.View):
-            def __init__(self):
-                super().__init__(timeout=120)  # Le bouton est actif pendant 2 minutes
-                self.participants = []
+        def __init__(self):
+            super().__init__(timeout=120)  # Le bouton est actif pendant 2 minutes
+            self.participants = []
 
-            @disnake.ui.button(label="Participer", emoji="🎊", style=disnake.ButtonStyle.grey)
-            async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
-                # Ajouter un utilisateur s'il remplit la condition des messages
-                member = interaction.author
-                message_count = await self.get_message_count(member, channel)
-                if 5 <= message_count <= 20:
-                    if member.id not in self.participants:
-                        self.participants.append(member.id)
-                        await interaction.response.send_message(f"{member.mention} tu es maintenant dans le drop!", ephemeral=True)
-                    else:
-                        await interaction.response.send_message(f"{member.mention} tu es déjà inscrit.", ephemeral=True)
+        @disnake.ui.button(label="Participer", emoji="🎊", style=disnake.ButtonStyle.grey)
+        async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
+            member = interaction.author
+
+            # Vérifier si le membre a entre 5 et 10 messages OU est en vocal
+            message_count = await self.get_message_count(member, interaction.channel)  # Comptage des messages dans le canal
+            in_voice_channel = await self.is_in_voice_channel(member)
+
+            if (5 <= message_count <= 10) or in_voice_channel:
+                if member.id not in self.participants:
+                    self.participants.append(member.id)
+                    await interaction.response.send_message(f"{member.mention}, tu es maintenant inscrit au drop !", ephemeral=True)
                 else:
-                    await interaction.response.send_message(f"{member.mention}, tu n'as pas le nombre de messages requis (5-20).", ephemeral=True)
+                    await interaction.response.send_message(f"{member.mention}, tu es déjà inscrit.", ephemeral=True)
+            else:
+                await interaction.response.send_message(
+                    f"{member.mention}, tu n'as pas rempli les conditions (5-10 messages ou être en vocal). "
+                    f"Tu as actuellement {message_count} messages dans ce salon.", ephemeral=True)
 
-            async def get_message_count(self, member, channel):
-                # Fonction pour compter les messages récents de l'utilisateur dans le channel
-                count = 0
-                async for message in channel.history(limit=100):
-                    if message.author == member:
-                        count += 1
-                return count
+        async def get_message_count(self, member, channel):
+            # Fonction pour compter les messages récents de l'utilisateur dans le channel
+            count = 0
+            async for message in channel.history(limit=100):  # Limite à 100 messages récents
+                if message.author == member:
+                    count += 1
+            return count
+
+        async def is_in_voice_channel(self, member):
+            # Fonction pour vérifier si l'utilisateur est dans un canal vocal
+            if member.voice and member.voice.channel:  # Vérifier si le membre est dans un canal vocal
+                return True
+            return False
 
     view = DropButton()
 
+    # Envoi de l'embed et du bouton de participation dans le canal
     await channel.send(content=role_ping.mention, embed=em, view=view)
 
+    # Attendre 2 minutes pour collecter les participants
     await asyncio.sleep(120)
 
+    # Sélectionner un gagnant aléatoire parmi les participants
     if view.participants:
         winner_id = random.choice(view.participants)
         winner = guild.get_member(winner_id)
@@ -235,6 +249,7 @@ async def auto_drop_task():
             await channel.send("Personne n'a remporté le drop cette fois.")
     else:
         await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
+
 
 
 @tasks.loop(hours=5)
