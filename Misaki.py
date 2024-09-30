@@ -5,6 +5,8 @@ import random
 from flask import Flask
 from threading import Thread
 import os
+import asyncio
+
 
 intents = disnake.Intents.all()
 intents.message_content = True
@@ -37,6 +39,7 @@ async def on_ready():
     remind_bumping.start()
     update_staff_status.start()
     check_status.start()
+    auto_drop_task.start()
     load_animes()
     
     if not anime_vote_task.is_running():
@@ -160,6 +163,78 @@ async def on_member_join(member: disnake.Member):
     else:
         print("Erreur: Le salon '💬〃chat' ou le rôle '🎇〢New Member' est introuvable.")
 
+role_names = ["🎩〢Ėmissaire", "🎗️〢Duc", "🪭〢Comte", "🪖〢Vassal", "🕯️〢Greffier", 
+              "🔫〢Sergent d’Armes", "🔪〢Bourreau", "🏆〢Empereur", "🧢〢Certifier Vip", 
+              "🕊️〢Gardien", "🐸〢Superieur"]
+
+
+@tasks.loop(minutes=random.randint(5, 10))  # Répéter toutes les 5-10 minutes
+async def auto_drop_task():
+    guild = disnake.utils.get(bot.guilds, name=GUILD_NAME)
+    channel = disnake.utils.get(guild.text_channels, name='🎇〃2m-auto-drop')
+    role_ping = disnake.utils.get(guild.roles, name='📣〢Ping Giveaways')
+
+    if not channel or not role_ping:
+        print("Erreur: Le salon '🎇〃2m-auto-drop' ou le rôle '📣〢Ping Giveaways' est introuvable.")
+        return
+
+    # Sélection d'un rôle aléatoire parmi la liste des rôles
+    selected_role = random.choice(role_names)
+
+    # Création de l'embed pour le giveaway
+    em = disnake.Embed(
+        title='2 Minute Drop!',
+        description=f"Réagis pour participer et avoir une chance de gagner le rôle **{selected_role}**.\n"
+                    f"Condition : Avoir entre 5 et 20 messages récents.",
+        color=disnake.Color.dark_red()
+    )
+    em.set_footer(text="Le drop se termine dans 2 minutes. Cliquez sur le bouton ci-dessous pour participer.")
+
+    # Classe pour le bouton de participation
+    class DropButton(disnake.ui.View):
+            def __init__(self):
+                super().__init__(timeout=120)  # Le bouton est actif pendant 2 minutes
+                self.participants = []
+
+            @disnake.ui.button(label="Participer", emoji="🎊", style=disnake.ButtonStyle.grey)
+            async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
+                # Ajouter un utilisateur s'il remplit la condition des messages
+                member = interaction.author
+                message_count = await self.get_message_count(member, channel)
+                if 5 <= message_count <= 20:
+                    if member.id not in self.participants:
+                        self.participants.append(member.id)
+                        await interaction.response.send_message(f"{member.mention} tu es maintenant dans le drop!", ephemeral=True)
+                    else:
+                        await interaction.response.send_message(f"{member.mention} tu es déjà inscrit.", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{member.mention}, tu n'as pas le nombre de messages requis (5-20).", ephemeral=True)
+
+            async def get_message_count(self, member, channel):
+                # Fonction pour compter les messages récents de l'utilisateur dans le channel
+                count = 0
+                async for message in channel.history(limit=100):
+                    if message.author == member:
+                        count += 1
+                return count
+
+    view = DropButton()
+
+    await channel.send(content=role_ping.mention, embed=em, view=view)
+
+    await asyncio.sleep(120)
+
+    if view.participants:
+        winner_id = random.choice(view.participants)
+        winner = guild.get_member(winner_id)
+        if winner:
+            role_to_give = disnake.utils.get(guild.roles, name=selected_role)
+            await winner.add_roles(role_to_give)
+            await channel.send(f"Bravo {winner.mention} ! Tu as remporté le rôle **{role_to_give.name}** 🎉")
+        else:
+            await channel.send("Personne n'a remporté le drop cette fois.")
+    else:
+        await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
 
 
 @tasks.loop(hours=5)
