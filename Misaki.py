@@ -177,6 +177,12 @@ async def auto_drop_task():
 
     if not channel or not role_ping:
         return
+    
+    if channel and role_ping:
+        try:
+            await channel.purge(limit=100) 
+        except Exception as e:
+            print(f"Erreur lors de la purge des messages: {e}")
 
     selected_role = random.choice(role_names)
 
