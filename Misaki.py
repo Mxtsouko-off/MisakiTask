@@ -39,8 +39,6 @@ async def on_ready():
     remind_bumping.start()
     update_staff_status.start()
     check_status.start()
-    if not auto_drop_task.is_running():
-        auto_drop_task.start()
     load_animes()
     
     if not anime_vote_task.is_running():
@@ -106,9 +104,9 @@ async def before_update_staff_status():
 @tasks.loop(seconds=20)
 async def check_status():
     for guild in bot.guilds:
-        role = disnake.utils.get(guild.roles, name='🦾〢Soutient Bio')
+        role = disnake.utils.get(guild.roles, name='〢Goat')
         if not role:
-            print(f"Rôle '🦾〢Soutient Bio' non trouvé dans {guild.name}.")
+            print(f"Rôle '〢Goat' non trouvé dans {guild.name}.")
             continue
 
         for member in guild.members:
@@ -146,7 +144,7 @@ load_questions()
 async def on_member_join(member: disnake.Member):
     guild = member.guild
     channel = disnake.utils.get(guild.text_channels, name='💬〃chat')
-    role = disnake.utils.get(guild.roles, name="🎇〢New Member")
+    role = disnake.utils.get(guild.roles, name="📣〢Ping New Member")
 
     if channel and role:
         em = disnake.Embed(
@@ -162,74 +160,10 @@ async def on_member_join(member: disnake.Member):
         await channel.send('https://media.discordapp.net/attachments/1038084584149102653/1283304082286579784/2478276E-41CA-4738-B961-66A84B918163-1-1-1-1-1.gif?ex=66f993cf&is=66f8424f&hm=f14094491366b83448d82b6c4fc17128561f4c54465a5ba9fa2fffe1fb83dda3&=')
         await channel.send(embed=em, content=f"{member.mention} {role.mention}")  
     else:
-        print("Erreur: Le salon '💬〃chat' ou le rôle '🎇〢New Member' est introuvable.")
+        print("Erreur: Le salon '💬〃chat' ou le rôle '📣〢Ping New Member' est introuvable.")
 
-role_names = ["🎩〢Ėmissaire", "🎗️〢Duc", "🪭〢Comte", "🪖〢Vassal", "🕯️〢Greffier", 
-              "🔫〢Sergent d’Armes", "🔪〢Bourreau", "🏆〢Empereur", "🧢〢Certifier Vip", 
-              "🕊️〢Gardien", "🐸〢Superieur"]
 
-@tasks.loop(hours=1)
-async def auto_drop_task():
 
-    guild = disnake.utils.get(bot.guilds, name=GUILD_NAME)
-    channel = disnake.utils.get(guild.text_channels, name='🎇〃2m-auto-drop')
-    role_ping = disnake.utils.get(guild.roles, name='📣〢Ping Giveaways')
-
-    if not channel or not role_ping:
-        return
-    
-    if channel and role_ping:
-        try:
-            await channel.purge(limit=100) 
-        except Exception as e:
-            print(f"Erreur lors de la purge des messages: {e}")
-
-    selected_role = random.choice(role_names)
-
-    em = disnake.Embed(
-        title='2 Minute Drop!',
-        description=f"Réagis pour participer et avoir une chance de gagner le rôle **{selected_role}**.\n"
-                    f"Condition : Être en vocal.",
-        color=disnake.Color.dark_red()
-    )
-    em.set_footer(text="Le drop se termine dans 2 minutes. Cliquez sur le bouton ci-dessous pour participer.")
-
-    class DropButton(disnake.ui.View):
-        def __init__(self):
-            super().__init__(timeout=120)
-            self.participants = []
-
-        @disnake.ui.button(label="Participer", emoji="🎊", style=disnake.ButtonStyle.grey)
-        async def participate_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
-            member = interaction.author
-            await interaction.response.defer(ephemeral=True)
-
-            if member.voice and member.voice.channel:
-                if member.id not in self.participants:
-                    self.participants.append(member.id)
-                    await interaction.edit_original_response(content=f"{member.mention}, tu es maintenant inscrit au drop !")
-                else:
-                    await interaction.edit_original_response(content=f"{member.mention}, tu es déjà inscrit.")
-            else:
-                await interaction.edit_original_response(
-                    content=f"{member.mention}, tu n'es pas en vocal. "
-                            f"Tu dois être dans un canal vocal pour participer."
-                )
-
-    view = DropButton()
-
-    await channel.send(embed=em, view=view)
-    await asyncio.sleep(120)
-
-    if view.participants:
-        winner_id = random.choice(view.participants)
-        winner = guild.get_member(winner_id)
-        if winner:
-            role_to_give = disnake.utils.get(guild.roles, name=selected_role)
-            await winner.add_roles(role_to_give)
-            await channel.send(f"Bravo {winner.mention} ! Tu as remporté le rôle **{role_to_give.name}** 🎉")
-    else:
-        await channel.send("Aucun participant n'a répondu aux conditions pour ce drop.")
 
 @tasks.loop(hours=5)
 async def send_random_question():
@@ -311,7 +245,7 @@ async def anime_vote_task():
     global_anime_link = anime["link"]
     image_url = get_anime_image(global_anime_name)
 
-    role = disnake.utils.get(channel.guild.roles, name='🚀〢Ping Anime vote')
+    role = disnake.utils.get(channel.guild.roles, name='📣〢Ping Anime vote')
     
     if channel and role:
         try:
